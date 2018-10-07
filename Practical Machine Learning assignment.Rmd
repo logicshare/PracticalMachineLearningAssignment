@@ -1,0 +1,150 @@
+# Personal Activity Prediction Analysis
+
+### Dain Thengunnal    
+### 07 Oct 2018
+
+## Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively.These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset)
+
+## Data 
+
+The training data for this project are available at:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available at:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+
+## Data Processing
+
+
+```{r pa1,echo=TRUE}
+
+# Load packages and set seed
+
+set.seed(342)
+
+library(caret)
+library(knitr)
+library(randomForest)
+
+# clean up existing user objects in the workspace
+
+rm(list=ls())
+
+# Read the already downloaded data files from working directory
+# values "NA","#DIV/0!","" are classified as NA
+
+training_raw <- read.csv("pml-training.csv", na.strings=c("NA","#DIV/0!",""))
+testing_raw <- read.csv("pml-testing.csv", na.strings=c("NA","#DIV/0!",""))
+	
+```
+
+### Clean the data
+
+```{r pa2,echo=TRUE}
+
+dim(training_raw)
+dim(testing_raw)
+
+# Remove columns with all missing values
+
+training_raw<-training_raw[,colSums(is.na(training_raw)) == 0]
+testing_raw <-testing_raw[,colSums(is.na(testing_raw)) == 0]
+
+dim(training_raw)
+dim(testing_raw)
+
+# Remove columns 1 to 7 as they are irrelevant to this analysis
+
+trainingClean <-training_raw[,-c(1:7)]
+testingClean <-testing_raw[,-c(1:7)]
+
+```
+### Exploratory Data Analysis
+
+```{r pa3,echo=TRUE}
+
+dim(trainingClean)
+dim(testingClean)
+
+```
+Refer Appendix for the plot of classe variable from cleansed training data set.
+
+
+### Partition the cleansed training data to enable cross-validation
+
+The cleansed training data is divided into two sets: trainFinal and validate
+
+The final training set with 75% of the cleansed training data will be used to train the model.
+The validation set with 25% of the cleansed training data will be used to assess the model performance.
+
+```{r pa4,echo=TRUE}
+
+inTrain <- createDataPartition(trainingClean$classe, p=0.75)[[1]]
+trainFinal <- trainingClean[inTrain, ]
+validate <- trainingClean[-inTrain, ]	
+
+```
+## Model Development
+
+The model will be trained using final training data set and it's performance accessed against validation data set.
+
+### Model Training
+
+Random Forest algorithm will be used to train the model as it typically produces better performance compared to decision trees.
+
+```{r pa5,echo=TRUE}
+
+modelFit <- randomForest(classe ~ ., data = trainFinal)
+
+```
+
+### Model Validation
+
+Model performance will be accessed against the validation set.
+
+```{r pa6,echo=TRUE}
+
+predVal<-predict(modelFit,newdata=validate)
+
+print(confusionMatrix(predVal,validate$classe))
+
+```
+
+### Results
+
+cross validation accuracy is 99.65 %
+
+out-of-sample error, i.e 1 - accuracy, is 0.35 %
+
+The model performance is good.
+
+
+## Test Data Prediction
+
+The model is applied to the test data for prediction.
+
+```{r pa9,echo=TRUE}
+
+predTest<-predict(modelFit,newdata=testingClean)
+
+predTest
+
+```
+
+
+## Appendix
+
+
+```{r pa10,echo=TRUE}
+
+plot(trainingClean$classe, col="grey", main="classe levels vs Frequency for training data", xlab="classe level", ylab="Frequency")
+
+```
+
+## Reference
+
+Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human 13). Stuttgart, Germany: ACM SIGCHI, 2013.
+
